@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <include
+        domain="sharedpref"
+        path="." />
+    <include
+        domain="database"
+        path="falaserio_db" />
+    <exclude
+        domain="no_backup"
+        path="." />
+    <exclude
+        domain="cache"
+        path="." />
+</full-backup-content>

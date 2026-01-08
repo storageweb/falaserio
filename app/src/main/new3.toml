@@ -1,0 +1,3 @@
+toml
+[bundles]
+room = ["androidx-room-runtime", "androidx-room-ktx"]

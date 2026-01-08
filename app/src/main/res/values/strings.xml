@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fala Sério</string>
+    <string name="app_description">Revelador da Verdade - Detector de Stress por Voz</string>
+
+    <!-- Tela principal -->
+    <string name="ready">PRONTO</string>
+    <string name="tap_to_record">Toque para gravar</string>
+    <string name="tap_to_stop">Toque para parar</string>
+    <string name="analyzing">Analisando…</string>
+
+    <!-- Níveis de stress -->
+    <string name="stress_very_high">Stress Muito Alto</string>
+    <string name="stress_high">Stress Alto</string>
+    <string name="stress_medium">Stress Médio</string>
+    <string name="stress_low">Stress Baixo</string>
+    <string name="stress_very_low">Stress Muito Baixo</string>
+
+    <!-- Métricas VSA -->
+    <string name="metric_micro_tremor">Micro-Tremor</string>
+    <string name="metric_pitch_variation">Variação de Pitch</string>
+    <string name="metric_jitter">Jitter</string>
+    <string name="metric_shimmer">Shimmer</string>
+    <string name="metric_hnr">HNR</string>
+
+    <!-- Créditos -->
+    <string name="credits">Créditos</string>
+    <string name="unlimited">ILIMITADO</string>
+    <string name="watch_ad">Assistir Anúncio</string>
+    <string name="get_free_credit">Ganhe 1 crédito grátis!</string>
+
+    <!-- Histórico -->
+    <string name="history">Histórico</string>
+    <string name="no_history">Nenhuma análise ainda</string>
+    <string name="make_first_recording">Faça sua primeira gravação!</string>
+
+    <!-- Erros -->
+    <string name="error_no_credits">Sem créditos! Assista um anúncio ou compre mais.</string>
+    <string name="error_recording_failed">Falha na gravação</string>
+    <string name="error_analysis_failed">Falha na análise</string>
+    <string name="error_permission_denied">Permissão de áudio negada</string>
+
+    <!-- Avisos legais -->
+    <string name="disclaimer">⚠️ Apenas para entretenimento. Sem validade científica.</string>
+    <string name="purchase_disclaimer">As compras são processadas pelo Google Play.</string>
+
+    <!-- Ações -->
+    <string name="back">Voltar</string>
+    <string name="delete">Deletar</string>
+    <string name="confirm">Confirmar</string>
+    <string name="cancel">Cancelar</string>
+</resources>

@@ -1,0 +1,17 @@
+# FalaSerio - Revelador da Verdade
+# Propriedades locais (NÃO commitar no Git!)
+
+# SDK Android
+sdk.dir=C:\\Users\\YOUR_USER\\AppData\\Local\\Android\\Sdk
+
+# AdMob IDs (SUBSTITUIR por IDs reais de produção!)
+ADMOB_APP_ID=ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX
+ADMOB_BANNER_TOP_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
+ADMOB_BANNER_BOTTOM_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
+ADMOB_REWARDED_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
+
+# Keystore para release (MANTER SECRETO!)
+# STORE_FILE=keystore/falaserio.jks
+# STORE_PASSWORD=sua_senha_segura
+# KEY_ALIAS=falaserio
+# KEY_PASSWORD=sua_senha_segura

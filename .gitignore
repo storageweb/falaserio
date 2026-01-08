@@ -1,0 +1,24 @@
+# FalaSerio - Revelador da Verdade
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.jks
+*.keystore
+google-services.json
+
+# Android Studio
+*.hprof
+*.log
+
+# Kotlin
+*.kotlin_module
+
+# Release
+/app/release/
