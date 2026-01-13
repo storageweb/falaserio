@@ -169,6 +169,53 @@ implementada.
 
 ---
 
+## [0.1.1-alpha] - 2026-01-13
+
+### 🔍 Auditoria de Código - Billing System
+
+Análise completa do sistema de billing usando LSP Kotlin e revisão manual.
+
+### 🐛 Bugs Identificados
+
+#### 🔴 CRÍTICOS
+
+| Bug | Arquivo | Linha | Descrição |
+|-----|---------|-------|-----------|
+| TYPO | `CreditsViewModel.kt` | 83 | `"SUBSCRIber_50"` deveria ser `"SUBSCRIBER_50"` |
+| Race Condition | `BillingManager.kt` | 112-115 | Callback invocado antes de `consumeAsync` completar |
+| Callback Sobrescrito | `BillingManager.kt` | 33 | `purchaseCallback` pode ser sobrescrito em compras simultâneas |
+
+#### 🟡 MÉDIOS
+
+| Bug | Arquivo | Descrição |
+|-----|---------|-----------|
+| Créditos Iniciais | `FalaSerioApp.kt` | `initializeForNewUser()` nunca é chamado - usuário novo pode ter 0 créditos |
+| Memory Leak | `BillingManager.kt` | `disconnect()` nunca é chamado no lifecycle |
+| Restauração | `BillingManager.kt` | Falta método `restorePurchases()` para reinstalação |
+
+### 🔧 Correções Planejadas
+
+- [ ] Corrigir typo `SUBSCRIber_50` → `SUBSCRIBER_50`
+- [ ] Aguardar `consumeAsync` antes de invocar callback
+- [ ] Chamar `initializeForNewUser()` no `FalaSerioApp.onCreate()`
+- [ ] Implementar `restorePurchases()` no `BillingManager`
+- [ ] Chamar `billingManager.disconnect()` no `MainActivity.onDestroy()`
+
+### 🛠️ Ferramentas Utilizadas
+
+- **Kotlin LSP** (fwcd/kotlin-language-server v1.3.13)
+- **Claude Code Ultrathink** para análise profunda
+- **Operações LSP**: documentSymbol, hover, findReferences
+
+### Auditores
+
+| Auditor | Papel |
+|---------|-------|
+| Claudio (Claude AI) | Análise de código |
+| Roginho | Revisão e validação |
+
+---
+
 ## [Unreleased]
 
 ### Planejado
