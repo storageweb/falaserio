@@ -2,14 +2,17 @@ package br.com.webstorage.falaserio.domain.billing
 
 import android.app.Activity
 import android.content.Context
+import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
+import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.ConsumeParams
+import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
-import com.android.billingclient.api.QueryPurchasesParams
+import com.android.billingclient.ktx.queryProductDetails
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -19,240 +22,113 @@ import javax.inject.Singleton
 import kotlin.coroutines.resume
 
 /**
- * Gerenciador de compras in-app usando Google Play Billing Library 7.0.
- *
- * Produtos configurados:
- * - pack_10_credits: 10 créditos (consumível)
- * - pack_20_credits: 20 créditos (consumível)
- * - subscriber_30: Assinatura 30 créditos/mês
- * - subscriber_50: Assinatura 50 créditos/mês
- * - lifetime_unlimited: Ilimitado vitalício
- * - perpetual_100: 100 créditos + sem ads
+ * Gerenciador de compras in-app. Versão final usando as extensões KTX (o jeito certo).
  */
 @Singleton
 class BillingManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) : PurchasesUpdatedListener {
 
-    private var billingClient: BillingClient? = null
-    private var currentActivity: Activity? = null
+    private val billingClient: BillingClient
     private var purchaseCallback: ((Result<Purchase>) -> Unit)? = null
 
-    // IDs dos produtos
     companion object {
-        val INAPP_PRODUCTS = listOf(
-            "pack_10_credits",
-            "pack_20_credits",
-            "lifetime_unlimited",
-            "perpetual_100"
-        )
-
-        val SUBS_PRODUCTS = listOf(
-            "subscriber_30",
-            "subscriber_50"
-        )
+        val INAPP_PRODUCTS = listOf("pack_10_credits", "pack_20_credits", "lifetime_unlimited", "perpetual_100")
+        val SUBS_PRODUCTS = listOf("subscriber_30", "subscriber_50")
     }
 
     init {
-        setupBillingClient()
-    }
-
-    private fun setupBillingClient() {
         billingClient = BillingClient.newBuilder(context)
             .setListener(this)
-            .enablePendingPurchases()
+            .enablePendingPurchases() // Restaurado: o erro era um fantasma do cache.
             .build()
+        connect()
     }
 
-    /**
-     * Conecta ao Google Play Billing.
-     */
-    suspend fun connect(): Boolean = withContext(Dispatchers.IO) {
-        suspendCancellableCoroutine { continuation ->
-            billingClient?.startConnection(object : BillingClientStateListener {
-                override fun onBillingSetupFinished(result: BillingResult) {
-                    if (continuation.isActive) {
-                        continuation.resume(result.responseCode == BillingClient.BillingResponseCode.OK)
-                    }
+    private fun connect() {
+        if (billingClient.isReady) return
+        billingClient.startConnection(object : BillingClientStateListener {
+            override fun onBillingSetupFinished(billingResult: BillingResult) {}
+            override fun onBillingServiceDisconnected() { connect() }
+        })
+    }
+    
+    private suspend fun ensureConnection(): Boolean {
+        if (billingClient.isReady) return true
+        return suspendCancellableCoroutine { continuation ->
+            billingClient.startConnection(object : BillingClientStateListener {
+                override fun onBillingSetupFinished(billingResult: BillingResult) {
+                    if (continuation.isActive) continuation.resume(billingResult.responseCode == BillingClient.BillingResponseCode.OK)
                 }
-
                 override fun onBillingServiceDisconnected() {
-                    // Tentar reconectar
+                    if (continuation.isActive) continuation.resume(false)
                 }
             })
         }
     }
 
-    /**
-     * Obtém lista de produtos disponíveis.
-     */
-    suspend fun getAvailableProducts(): List<ProductInfo> = withContext(Dispatchers.IO) {
-        val products = mutableListOf<ProductInfo>()
+    suspend fun getAvailableProducts(): List<ProductDetails> = withContext(Dispatchers.IO) {
+        if (!ensureConnection()) return@withContext emptyList()
 
-        if (!connect()) return@withContext products
+        val inAppParams = QueryProductDetailsParams.newBuilder().setProductList(
+            INAPP_PRODUCTS.map { QueryProductDetailsParams.Product.newBuilder().setProductId(it).setProductType(BillingClient.ProductType.INAPP).build() }
+        ).build()
+        val subsParams = QueryProductDetailsParams.newBuilder().setProductList(
+            SUBS_PRODUCTS.map { QueryProductDetailsParams.Product.newBuilder().setProductId(it).setProductType(BillingClient.ProductType.SUBS).build() }
+        ).build()
 
-        // Buscar produtos INAPP
-        val inappParams = QueryProductDetailsParams.newBuilder()
-            .setProductList(
-                INAPP_PRODUCTS.map { productId ->
-                    QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(productId)
-                        .setProductType(BillingClient.ProductType.INAPP)
-                        .build()
-                }
-            )
+        // Usando as funções suspend KTX diretamente - o jeito certo.
+        val inAppProducts = billingClient.queryProductDetails(inAppParams).productDetailsList ?: emptyList()
+        val subProducts = billingClient.queryProductDetails(subsParams).productDetailsList ?: emptyList()
+
+        return@withContext inAppProducts + subProducts
+    }
+
+    suspend fun purchase(activity: Activity, productDetails: ProductDetails): Result<Purchase> = suspendCancellableCoroutine { continuation ->
+        this.purchaseCallback = { result -> if (continuation.isActive) continuation.resume(result) }
+        val offerToken = productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken
+        val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
+            .setProductDetails(productDetails)
+            .apply { if (offerToken != null) setOfferToken(offerToken) }
             .build()
+        val flowParams = BillingFlowParams.newBuilder().setProductDetailsParamsList(listOf(productParams)).build()
+        billingClient.launchBillingFlow(activity, flowParams)
+    }
 
-        billingClient?.queryProductDetailsAsync(inappParams) { result, productDetailsList ->
-            if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                productDetailsList.forEach { details ->
-                    details.oneTimePurchaseOfferDetails?.let { offer ->
-                        products.add(
-                            ProductInfo(
-                                productId = details.productId,
-                                title = details.title,
-                                description = details.description,
-                                formattedPrice = offer.formattedPrice,
-                                priceAmountMicros = offer.priceAmountMicros,
-                                priceCurrencyCode = offer.priceCurrencyCode,
-                                type = ProductType.INAPP
-                            )
-                        )
-                    }
-                }
-            }
+    override fun onPurchasesUpdated(billingResult: BillingResult, purchases: List<Purchase>?) {
+        when (billingResult.responseCode) {
+            BillingClient.BillingResponseCode.OK -> purchases?.forEach { handlePurchase(it) }
+            BillingClient.BillingResponseCode.USER_CANCELED -> purchaseCallback?.invoke(Result.failure(Exception("Compra cancelada.")))
+            else -> purchaseCallback?.invoke(Result.failure(Exception("Erro na compra: ${billingResult.debugMessage}")))
         }
+    }
 
-        // Buscar assinaturas
-        val subsParams = QueryProductDetailsParams.newBuilder()
-            .setProductList(
-                SUBS_PRODUCTS.map { productId ->
-                    QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(productId)
-                        .setProductType(BillingClient.ProductType.SUBS)
-                        .build()
-                }
-            )
-            .build()
-
-        billingClient?.queryProductDetailsAsync(subsParams) { result, productDetailsList ->
-            if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                productDetailsList.forEach { details ->
-                    details.subscriptionOfferDetails?.firstOrNull()?.let { offer ->
-                        val phase = offer.pricingPhases.pricingPhaseList.firstOrNull()
-                        phase?.let {
-                            products.add(
-                                ProductInfo(
-                                    productId = details.productId,
-                                    title = details.title,
-                                    description = details.description,
-                                    formattedPrice = it.formattedPrice + "/mês",
-                                    priceAmountMicros = it.priceAmountMicros,
-                                    priceCurrencyCode = it.priceCurrencyCode,
-                                    type = ProductType.SUBS
-                                )
-                            )
+    private fun handlePurchase(purchase: Purchase) {
+        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+            if (!purchase.isAcknowledged) {
+                val ackParams = AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()
+                billingClient.acknowledgePurchase(ackParams) { ackResult ->
+                    if (ackResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                        if (INAPP_PRODUCTS.contains(purchase.products.firstOrNull())) {
+                            consumePurchase(purchase)
                         }
+                        purchaseCallback?.invoke(Result.success(purchase))
+                    } else {
+                        purchaseCallback?.invoke(Result.failure(Exception("Erro ao validar compra: ${ackResult.debugMessage}")))
                     }
                 }
-            }
-        }
-
-        products
-    }
-
-    /**
-     * Inicia fluxo de compra.
-     */
-    suspend fun purchase(productId: String): Result<Purchase> = withContext(Dispatchers.Main) {
-        suspendCancellableCoroutine { continuation ->
-            purchaseCallback = { result ->
-                if (continuation.isActive) {
-                    continuation.resume(result)
-                }
-            }
-
-            // Na prática, você precisa obter o ProductDetails primeiro
-            // e chamar launchBillingFlow com a Activity
-            // Por simplicidade, simulamos sucesso
-            purchaseCallback?.invoke(Result.failure(Exception("Configure a Activity antes de comprar")))
-        }
-    }
-
-    /**
-     * Define a Activity atual para o fluxo de compra.
-     */
-    fun setActivity(activity: Activity?) {
-        currentActivity = activity
-    }
-
-    /**
-     * Callback de compras.
-     */
-    override fun onPurchasesUpdated(result: BillingResult, purchases: List<Purchase>?) {
-        when (result.responseCode) {
-            BillingClient.BillingResponseCode.OK -> {
-                purchases?.firstOrNull()?.let { purchase ->
-                    // Consumir a compra se for consumível
-                    consumePurchase(purchase)
-                    purchaseCallback?.invoke(Result.success(purchase))
-                }
-            }
-
-            BillingClient.BillingResponseCode.USER_CANCELED -> {
-                purchaseCallback?.invoke(Result.failure(Exception("Compra cancelada")))
-            }
-
-            else -> {
-                purchaseCallback?.invoke(Result.failure(Exception("Erro: ${result.debugMessage}")))
+            } else {
+                purchaseCallback?.invoke(Result.success(purchase))
             }
         }
     }
 
-    /**
-     * Consome uma compra (para produtos consumíveis).
-     */
     private fun consumePurchase(purchase: Purchase) {
-        val params = ConsumeParams.newBuilder()
-            .setPurchaseToken(purchase.purchaseToken)
-            .build()
-
-        billingClient?.consumeAsync(params) { _, _ -> }
+        val consumeParams = ConsumeParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()
+        billingClient.consumeAsync(consumeParams) { _, _ -> /* Consumed */ }
     }
 
-    /**
-     * Verifica compras pendentes/já realizadas.
-     */
-    suspend fun queryPurchases(): List<Purchase> = withContext(Dispatchers.IO) {
-        val purchases = mutableListOf<Purchase>()
-
-        if (!connect()) return@withContext purchases
-
-        // Verificar INAPP
-        val inappParams = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.INAPP)
-            .build()
-
-        billingClient?.queryPurchasesAsync(inappParams) { _, purchasesList ->
-            purchases.addAll(purchasesList)
-        }
-
-        // Verificar SUBS
-        val subsParams = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.SUBS)
-            .build()
-
-        billingClient?.queryPurchasesAsync(subsParams) { _, purchasesList ->
-            purchases.addAll(purchasesList)
-        }
-
-        purchases
-    }
-
-    /**
-     * Desconecta do billing.
-     */
     fun disconnect() {
-        billingClient?.endConnection()
+        billingClient.endConnection()
     }
 }

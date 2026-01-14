@@ -86,15 +86,21 @@ dependencies {
     // Navigation Compose
     implementation("androidx.navigation:navigation-compose:2.8.5")
 
-    // ========== HILT 2.51 ==========
-    implementation("com.google.dagger:hilt-android:2.51")
-    ksp("com.google.dagger:hilt-android-compiler:2.51")
+    // ========== HILT 2.57.2 ==========
+    implementation("com.google.dagger:hilt-android:2.57.2")
+    ksp("com.google.dagger:hilt-android-compiler:2.57.2")
+
+    // ========== ROOM COMPILER ==========
+    ksp("androidx.room:room-compiler:2.6.1")
+    
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     // ========== ROOM 2.6.1 ==========
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    
+    // Removido ksp duplicado
+    // ksp("androidx.room:room-compiler:${versions.room}") 
 
     // ========== COROUTINES ==========
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")

@@ -1,10 +1,12 @@
 package br.com.webstorage.falaserio.presentation.viewmodel
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.webstorage.falaserio.data.repository.CreditsRepository
 import br.com.webstorage.falaserio.domain.billing.BillingManager
 import br.com.webstorage.falaserio.domain.billing.ProductInfo
+import com.android.billingclient.api.ProductDetails
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,8 +29,9 @@ class CreditsViewModel @Inject constructor(
     private val _isUnlimited = MutableStateFlow(false)
     val isUnlimited: StateFlow<Boolean> = _isUnlimited.asStateFlow()
 
-    private val _products = MutableStateFlow<List<ProductInfo>>(emptyList())
-    val products: StateFlow<List<ProductInfo>> = _products.asStateFlow()
+    // Alterado para usar a classe ProductDetails diretamente da biblioteca de billing
+    private val _products = MutableStateFlow<List<ProductDetails>>(emptyList())
+    val products: StateFlow<List<ProductDetails>> = _products.asStateFlow()
 
     private val _isPurchasing = MutableStateFlow(false)
     val isPurchasing: StateFlow<Boolean> = _isPurchasing.asStateFlow()
@@ -58,16 +61,17 @@ class CreditsViewModel @Inject constructor(
         }
     }
 
-    fun purchaseProduct(productId: String) {
+    // A assinatura mudou. Agora a UI (Composable) precisa passar a Activity e o ProductDetails.
+    fun purchaseProduct(activity: Activity, productDetails: ProductDetails) {
         viewModelScope.launch {
             _isPurchasing.value = true
             _purchaseError.value = null
 
-            val result = billingManager.purchase(productId)
+            val result = billingManager.purchase(activity, productDetails)
 
             if (result.isSuccess) {
-                // Atualizar créditos baseado no produto
-                when (productId) {
+                // A lógica de sucesso continua a mesma, mas usa o ID do productDetails
+                when (productDetails.productId) {
                     "pack_10_credits" -> creditsRepository.addCredits(10)
                     "pack_20_credits" -> creditsRepository.addCredits(20)
                     "subscriber_30" -> {
@@ -76,7 +80,7 @@ class CreditsViewModel @Inject constructor(
                     }
 
                     "subscriber_50" -> {
-                        creditsRepository.setSubscription("SUBSCRIBER_50", showAds = false)
+                        creditsRepository.setSubscription("SUBSCRIber_50", showAds = false)
                         creditsRepository.renewMonthlyCredits(50)
                     }
 
