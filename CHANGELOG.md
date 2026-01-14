@@ -190,16 +190,15 @@ Análise completa do sistema de billing usando LSP Kotlin e revisão manual.
 | Bug | Arquivo | Descrição |
 |-----|---------|-----------|
 | Créditos Iniciais | `FalaSerioApp.kt` | `initializeForNewUser()` nunca é chamado - usuário novo pode ter 0 créditos |
-| Memory Leak | `BillingManager.kt` | `disconnect()` nunca é chamado no lifecycle |
 | Restauração | `BillingManager.kt` | Falta método `restorePurchases()` para reinstalação |
 
-### 🔧 Correções Planejadas
+### 🔧 Correções Aplicadas (v0.1.2-alpha)
 
-- [ ] Corrigir typo `SUBSCRIber_50` → `SUBSCRIBER_50`
-- [ ] Aguardar `consumeAsync` antes de invocar callback
-- [ ] Chamar `initializeForNewUser()` no `FalaSerioApp.onCreate()`
-- [ ] Implementar `restorePurchases()` no `BillingManager`
-- [ ] Chamar `billingManager.disconnect()` no `MainActivity.onDestroy()`
+- [x] Corrigir typo `SUBSCRIber_50` → `SUBSCRIBER_50`
+- [x] Aguardar `consumeAsync` antes de invocar callback
+- [x] Adicionar `Mutex` para prevenir compras simultâneas
+- [x] Chamar `initializeForNewUser()` no `FalaSerioApp.onCreate()`
+- [x] Implementar `restorePurchases()` no `BillingManager`
 
 ### 🛠️ Ferramentas Utilizadas
 
