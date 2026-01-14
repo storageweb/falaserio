@@ -12,10 +12,14 @@ import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.ktx.queryProductDetails
+import com.android.billingclient.ktx.queryPurchasesAsync
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,6 +35,7 @@ class BillingManager @Inject constructor(
 
     private val billingClient: BillingClient
     private var purchaseCallback: ((Result<Purchase>) -> Unit)? = null
+    private val purchaseMutex = Mutex()
 
     companion object {
         val INAPP_PRODUCTS = listOf("pack_10_credits", "pack_20_credits", "lifetime_unlimited", "perpetual_100")
@@ -84,15 +89,17 @@ class BillingManager @Inject constructor(
         return@withContext inAppProducts + subProducts
     }
 
-    suspend fun purchase(activity: Activity, productDetails: ProductDetails): Result<Purchase> = suspendCancellableCoroutine { continuation ->
-        this.purchaseCallback = { result -> if (continuation.isActive) continuation.resume(result) }
-        val offerToken = productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken
-        val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
-            .setProductDetails(productDetails)
-            .apply { if (offerToken != null) setOfferToken(offerToken) }
-            .build()
-        val flowParams = BillingFlowParams.newBuilder().setProductDetailsParamsList(listOf(productParams)).build()
-        billingClient.launchBillingFlow(activity, flowParams)
+    suspend fun purchase(activity: Activity, productDetails: ProductDetails): Result<Purchase> = purchaseMutex.withLock {
+        suspendCancellableCoroutine { continuation ->
+            this.purchaseCallback = { result -> if (continuation.isActive) continuation.resume(result) }
+            val offerToken = productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken
+            val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
+                .setProductDetails(productDetails)
+                .apply { if (offerToken != null) setOfferToken(offerToken) }
+                .build()
+            val flowParams = BillingFlowParams.newBuilder().setProductDetailsParamsList(listOf(productParams)).build()
+            billingClient.launchBillingFlow(activity, flowParams)
+        }
     }
 
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: List<Purchase>?) {
@@ -110,9 +117,12 @@ class BillingManager @Inject constructor(
                 billingClient.acknowledgePurchase(ackParams) { ackResult ->
                     if (ackResult.responseCode == BillingClient.BillingResponseCode.OK) {
                         if (INAPP_PRODUCTS.contains(purchase.products.firstOrNull())) {
-                            consumePurchase(purchase)
+                            // Consumable: aguardar consume antes de notificar sucesso
+                            consumePurchaseAndNotify(purchase)
+                        } else {
+                            // Subscription: notificar sucesso imediatamente
+                            purchaseCallback?.invoke(Result.success(purchase))
                         }
-                        purchaseCallback?.invoke(Result.success(purchase))
                     } else {
                         purchaseCallback?.invoke(Result.failure(Exception("Erro ao validar compra: ${ackResult.debugMessage}")))
                     }
@@ -123,9 +133,41 @@ class BillingManager @Inject constructor(
         }
     }
 
-    private fun consumePurchase(purchase: Purchase) {
+    /**
+     * Consome a compra (para produtos consumíveis) e notifica sucesso após o consume completar.
+     * Isso evita race condition onde o callback era chamado antes do consume terminar.
+     */
+    private fun consumePurchaseAndNotify(purchase: Purchase) {
         val consumeParams = ConsumeParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()
-        billingClient.consumeAsync(consumeParams) { _, _ -> /* Consumed */ }
+        billingClient.consumeAsync(consumeParams) { billingResult, _ ->
+            // Notificar sucesso após consume completar (independente do resultado do consume)
+            // Pois acknowledge já foi feito - a compra é válida
+            purchaseCallback?.invoke(Result.success(purchase))
+        }
+    }
+
+    /**
+     * Restaura compras anteriores do usuário.
+     * Deve ser chamado ao iniciar o app para verificar assinaturas ativas e compras permanentes.
+     */
+    suspend fun restorePurchases(): List<Purchase> = withContext(Dispatchers.IO) {
+        if (!ensureConnection()) return@withContext emptyList()
+
+        val inAppPurchases = billingClient.queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.INAPP)
+                .build()
+        ).purchasesList
+
+        val subsPurchases = billingClient.queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build()
+        ).purchasesList
+
+        return@withContext (inAppPurchases + subsPurchases).filter {
+            it.purchaseState == Purchase.PurchaseState.PURCHASED
+        }
     }
 
     fun disconnect() {

@@ -80,7 +80,7 @@ class CreditsViewModel @Inject constructor(
                     }
 
                     "subscriber_50" -> {
-                        creditsRepository.setSubscription("SUBSCRIber_50", showAds = false)
+                        creditsRepository.setSubscription("SUBSCRIBER_50", showAds = false)
                         creditsRepository.renewMonthlyCredits(50)
                     }
 
