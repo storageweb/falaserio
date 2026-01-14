@@ -47,13 +47,14 @@ class HistoryRepository @Inject constructor(
     }
 
     private fun getDuration(file: File): Long {
-        val retriever = MediaMetadataRetriever()
         return try {
-            retriever.setDataSource(file.absolutePath)
-            val time = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-            time?.toLong() ?: 0L
-        } finally {
-            retriever.release()
+            MediaMetadataRetriever().use { retriever ->
+                retriever.setDataSource(file.absolutePath)
+                val time = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                time?.toLongOrNull() ?: 0L
+            }
+        } catch (e: Exception) {
+            0L
         }
     }
 

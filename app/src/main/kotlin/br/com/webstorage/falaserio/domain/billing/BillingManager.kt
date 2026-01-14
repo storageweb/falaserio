@@ -38,8 +38,9 @@ class BillingManager @Inject constructor(
     private val purchaseMutex = Mutex()
 
     companion object {
-        val INAPP_PRODUCTS = listOf("pack_10_credits", "pack_20_credits", "lifetime_unlimited", "perpetual_100")
-        val SUBS_PRODUCTS = listOf("subscriber_30", "subscriber_50")
+        // Agora usa a configuração centralizada
+        val INAPP_PRODUCTS get() = MonetizationConfig.INAPP_PRODUCT_IDS
+        val SUBS_PRODUCTS get() = MonetizationConfig.SUBS_PRODUCT_IDS
     }
 
     init {
@@ -116,7 +117,8 @@ class BillingManager @Inject constructor(
                 val ackParams = AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()
                 billingClient.acknowledgePurchase(ackParams) { ackResult ->
                     if (ackResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                        if (INAPP_PRODUCTS.contains(purchase.products.firstOrNull())) {
+                        val productId = purchase.products.firstOrNull()
+                        if (INAPP_PRODUCTS.contains(productId)) {
                             // Consumable: aguardar consume antes de notificar sucesso
                             consumePurchaseAndNotify(purchase)
                         } else {
@@ -130,6 +132,9 @@ class BillingManager @Inject constructor(
             } else {
                 purchaseCallback?.invoke(Result.success(purchase))
             }
+        } else {
+            // Purchase state não é PURCHASED - notificar erro
+            purchaseCallback?.invoke(Result.failure(Exception("Estado de compra inválido: ${purchase.purchaseState}")))
         }
     }
 
