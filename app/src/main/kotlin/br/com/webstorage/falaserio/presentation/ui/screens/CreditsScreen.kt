@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.webstorage.falaserio.domain.billing.MonetizationConfig
 import br.com.webstorage.falaserio.presentation.ui.theme.Accent
 import br.com.webstorage.falaserio.presentation.ui.theme.ErrorColor
 import br.com.webstorage.falaserio.presentation.ui.theme.Primary
@@ -120,13 +121,17 @@ fun CreditsScreen(
                     ?: product.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
                     ?: ""
 
+                // Usa MonetizationConfig para determinar se é popular
+                val productConfig = MonetizationConfig.getProductById(product.productId)
+                val isPopular = productConfig?.isPopular ?: false
+
                 ProductCard(
                     title = product.name, // API mudou de title para name
                     description = product.description,
                     price = price,
-                    isPopular = product.productId == "subscriber_30",
+                    isPopular = isPopular,
                     isPurchasing = isPurchasing,
-                    onClick = { viewModel.purchaseProduct(activity, product) } // CORRIGIDO
+                    onClick = { viewModel.purchaseProduct(activity, product) }
                 )
             }
 
@@ -151,6 +156,17 @@ fun CreditsScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
                 )
+            }
+
+            // Botão de Restaurar Compras (Requisito do Review)
+            item {
+                TextButton(
+                    onClick = { viewModel.restorePurchases() },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isPurchasing
+                ) {
+                    Text("Restaurar Compras Anteriores")
+                }
             }
         }
     }

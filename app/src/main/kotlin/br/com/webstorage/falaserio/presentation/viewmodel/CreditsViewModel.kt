@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.webstorage.falaserio.data.repository.CreditsRepository
 import br.com.webstorage.falaserio.domain.billing.BillingManager
+import br.com.webstorage.falaserio.domain.billing.MonetizationManager
+import br.com.webstorage.falaserio.domain.billing.ProcessingResult
 import br.com.webstorage.falaserio.domain.billing.ProductInfo
 import com.android.billingclient.api.ProductDetails
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,7 +22,8 @@ import javax.inject.Inject
 @HiltViewModel
 class CreditsViewModel @Inject constructor(
     private val creditsRepository: CreditsRepository,
-    private val billingManager: BillingManager
+    private val billingManager: BillingManager,
+    private val monetizationManager: MonetizationManager
 ) : ViewModel() {
 
     private val _credits = MutableStateFlow(0)
@@ -69,30 +72,22 @@ class CreditsViewModel @Inject constructor(
 
             val result = billingManager.purchase(activity, productDetails)
 
-            if (result.isSuccess) {
-                // A lógica de sucesso continua a mesma, mas usa o ID do productDetails
-                when (productDetails.productId) {
-                    "pack_10_credits" -> creditsRepository.addCredits(10)
-                    "pack_20_credits" -> creditsRepository.addCredits(20)
-                    "subscriber_30" -> {
-                        creditsRepository.setSubscription("SUBSCRIBER_30", showAds = false)
-                        creditsRepository.renewMonthlyCredits(30)
+            result.fold(
+                onSuccess = { purchase ->
+                    // Usa o MonetizationManager para processar a compra
+                    when (val processingResult = monetizationManager.processPurchase(productDetails.productId)) {
+                        is ProcessingResult.Success -> {
+                            // Compra processada com sucesso
+                        }
+                        is ProcessingResult.Error -> {
+                            _purchaseError.value = "Erro no processamento da compra. Tente novamente."
+                        }
                     }
-
-                    "subscriber_50" -> {
-                        creditsRepository.setSubscription("SUBSCRIBER_50", showAds = false)
-                        creditsRepository.renewMonthlyCredits(50)
-                    }
-
-                    "lifetime_unlimited" -> creditsRepository.setUnlimitedCredits()
-                    "perpetual_100" -> {
-                        creditsRepository.addCredits(100)
-                        creditsRepository.setShouldShowAds(false)
-                    }
+                },
+                onFailure = { exception ->
+                    _purchaseError.value = exception.message ?: "Erro na compra"
                 }
-            } else {
-                _purchaseError.value = result.exceptionOrNull()?.message ?: "Erro na compra"
-            }
+            )
 
             _isPurchasing.value = false
         }
@@ -101,6 +96,40 @@ class CreditsViewModel @Inject constructor(
     fun onAdWatched() {
         viewModelScope.launch {
             creditsRepository.addCredits(1)
+        }
+    }
+
+    /**
+     * Restaura compras anteriores do usuário.
+     * Deve ser chamado explicitamente pelo usuário (botão "Restaurar Compras").
+     */
+    fun restorePurchases() {
+        viewModelScope.launch {
+            _isPurchasing.value = true
+            _purchaseError.value = null
+
+            try {
+                // 1. Busca compras ativas no Google Play
+                val purchases = billingManager.restorePurchases()
+                
+                if (purchases.isEmpty()) {
+                    _purchaseError.value = "Nenhuma compra encontrada para restaurar."
+                } else {
+                    // 2. Processa cada compra (com flag isRestore=true)
+                    val restoredIds = monetizationManager.processMultiplePurchases(purchases)
+                    
+                    if (restoredIds.isNotEmpty()) {
+                        // Sucesso silencioso (UI atualiza via StateFlow de créditos)
+                    } else {
+                        // Compras existem mas podem não ser válidas no nosso config
+                         _purchaseError.value = "Compras encontradas mas não puderam ser restauradas."
+                    }
+                }
+            } catch (e: Exception) {
+                _purchaseError.value = "Erro ao restaurar: ${e.message}"
+            } finally {
+                _isPurchasing.value = false
+            }
         }
     }
 

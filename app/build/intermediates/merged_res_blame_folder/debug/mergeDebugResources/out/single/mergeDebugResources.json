@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "br.com.webstorage.falaserio.app-debug-62:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "br.com.webstorage.falaserio.app-main-64:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "br.com.webstorage.falaserio.app-debug-62:/xml_backup_rules.xml.flat",
+        "source": "br.com.webstorage.falaserio.app-main-64:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "br.com.webstorage.falaserio.app-debug-62:/xml_data_extraction_rules.xml.flat",
+        "source": "br.com.webstorage.falaserio.app-main-64:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "br.com.webstorage.falaserio.app-debug-62:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "br.com.webstorage.falaserio.app-main-64:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    }
+]

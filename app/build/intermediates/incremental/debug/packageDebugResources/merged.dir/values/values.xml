@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent">#FFD600</color>
+    <color name="accent_dark">#C7A500</color>
+    <color name="accent_light">#FFFF52</color>
+    <color name="background_dark">#121212</color>
+    <color name="error">#F44336</color>
+    <color name="info">#2196F3</color>
+    <color name="on_background_dark">#E0E0E0</color>
+    <color name="on_primary_dark">#000000</color>
+    <color name="on_secondary_dark">#FFFFFF</color>
+    <color name="on_surface_dark">#FFFFFF</color>
+    <color name="primary">#00BFA5</color>
+    <color name="primary_dark">#008E76</color>
+    <color name="primary_light">#5DF2D6</color>
+    <color name="secondary">#FF5252</color>
+    <color name="secondary_dark">#C50E29</color>
+    <color name="secondary_light">#FF867F</color>
+    <color name="success">#4CAF50</color>
+    <color name="surface_dark">#1E1E1E</color>
+    <color name="surface_variant_dark">#2D2D2D</color>
+    <color name="warning">#FFC107</color>
+    <string name="analyzing">Analisando…</string>
+    <string name="app_description">Revelador da Verdade - Detector de Stress por Voz</string>
+    <string name="app_name">Fala Sério</string>
+    <string name="back">Voltar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="confirm">Confirmar</string>
+    <string name="credits">Créditos</string>
+    <string name="delete">Deletar</string>
+    <string name="disclaimer">⚠️ Apenas para entretenimento. Sem validade científica.</string>
+    <string name="error_analysis_failed">Falha na análise</string>
+    <string name="error_no_credits">Sem créditos! Assista um anúncio ou compre mais.</string>
+    <string name="error_permission_denied">Permissão de áudio negada</string>
+    <string name="error_recording_failed">Falha na gravação</string>
+    <string name="get_free_credit">Ganhe 1 crédito grátis!</string>
+    <string name="history">Histórico</string>
+    <string name="make_first_recording">Faça sua primeira gravação!</string>
+    <string name="metric_hnr">HNR</string>
+    <string name="metric_jitter">Jitter</string>
+    <string name="metric_micro_tremor">Micro-Tremor</string>
+    <string name="metric_pitch_variation">Variação de Pitch</string>
+    <string name="metric_shimmer">Shimmer</string>
+    <string name="no_history">Nenhuma análise ainda</string>
+    <string name="purchase_disclaimer">As compras são processadas pelo Google Play.</string>
+    <string name="ready">PRONTO</string>
+    <string name="stress_high">Stress Alto</string>
+    <string name="stress_low">Stress Baixo</string>
+    <string name="stress_medium">Stress Médio</string>
+    <string name="stress_very_high">Stress Muito Alto</string>
+    <string name="stress_very_low">Stress Muito Baixo</string>
+    <string name="tap_to_record">Toque para gravar</string>
+    <string name="tap_to_stop">Toque para parar</string>
+    <string name="unlimited">ILIMITADO</string>
+    <string name="watch_ad">Assistir Anúncio</string>
+    <style name="Theme.FalaSerio" parent="android:Theme.Material.Light.NoActionBar">
+        
+        <item name="android:statusBarColor">@color/background_dark</item>
+        <item name="android:navigationBarColor">@color/background_dark</item>
+        <item name="android:windowBackground">@color/background_dark</item>
+    </style>
+</resources>

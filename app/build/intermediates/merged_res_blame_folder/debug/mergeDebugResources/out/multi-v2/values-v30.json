@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "br.com.webstorage.falaserio.app-mergeDebugResources-60:/values-v30/values-v30.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\rluft\\.gradle\\caches\\8.11.1\\transforms\\078d58b27f3061e37bb0a6c8579159ac\\transformed\\material3\\res\\values-v30\\values-v30.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "72",
+                        "endOffsets": "123"
+                    }
+                }
+            ]
+        }
+    ]
+}
